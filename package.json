@@ -1,0 +1,26 @@
+{
+  "name": "cloudy-localsmith",
+  "description": "Ubersmith Emulation Module used by Cloudy Kangaroo",
+  "version": "0.0.1",
+  "author": {
+    "name": "Jonathan Creasy",
+    "email": "jonathan.creasy@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johann8384/cloudy-localsmith"
+  },
+  "bugs": {
+    "url": "https://github.com/johann8384/cloudy-localsmith/issues/new"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/johann8384/cloudy-localsmith/blob/master/LICENSE"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "contegix-logger": "0.1.x",
+    "events": "0.5.0",
+    "underscore": "1.4.x"
+  }
+}
