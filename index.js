@@ -1,6 +1,7 @@
-var redis = require('redis');
+var _ = require('underscore');
+var async = require('async');
+
 var events = require('events');
-var ctxlog = require('contegix-logger');
 var Emitter = new events.EventEmitter;
 var db = require('./lib/db')
 
@@ -23,12 +24,12 @@ module.exports = function(params)
   Emitter.on('configure.complete', function(params) {
     if (params.warm_cache === true)
     {
-      start(params);
+      //start(params);
     }
   });
 
   var getDeviceByID = function(deviceID, callback) {
-    db.devices.findbyDeviceID(deviceID, callback);
+    db.devices.findByDeviceID(deviceID, callback);
   };
 
   var getDeviceByHostname = function(hostname, callback) {
@@ -36,11 +37,11 @@ module.exports = function(params)
   };
 
   var getTicketsbyDeviceID = function(deviceID, callback) {
-    db.tickets.findBydeviceID(deviceID, callback);
+    db.tickets.findByDeviceID(deviceID, callback);
   };
 
   var getDevicesbyTypeGroupID = function(typeGroupID, callback) {
-    db.tickets.findByTypeGroupID(typeGroupID, callback);
+    db.devices.findByTypeGroupID(typeGroupID, callback);
   };
 
   var getDevicesbyClientID = function(clientID, callback) {
@@ -55,6 +56,10 @@ module.exports = function(params)
     callback(null, db.tickets.tickets);
   };
 
+  var getTicketbyTicketID = function(ticketID, callback) {
+    db.tickets.findByTicketID(ticketID, callback);
+  };
+
   var getTicketPostsbyTicketID = function(ticketID, callback) {
     callback(null, db.tickets.tickets);
   };
@@ -63,8 +68,19 @@ module.exports = function(params)
     db.clients.findByClientID(clientID, callback);
   };
 
-  var getClients = function(callback) {
-    callback(null, db.clients.clients);
+  var getClients = function(getClientsCallback) {
+    var clientList = db.clients.getAll();
+    async.map(clientList
+      , function(client, iteratorCallback) {
+        db.contacts.getPrimaryContactbyClientID(client.clientID, function (err, contact) {
+          db.admins.findByClientID(client.clientID, function (err, admin) {
+            client.salesperson_name = admin.name;
+            client.full_name = contact.name;
+            client.email = contact.email;
+            iteratorCallback(null, client);
+          });
+        });
+      }, getClientsCallback);
   };
 
   var getDeviceHostnames = function(callback) {
@@ -77,7 +93,7 @@ module.exports = function(params)
   };
 
   var getContactsbyClientID = function(clientID, callback) {
-    db.contacts.findbyClientID(clientID, callback);
+    db.contacts.findByClientID(clientID, callback);
   };
 
   var getContactbyContactID = function(contactID, callback) {
@@ -91,11 +107,15 @@ module.exports = function(params)
     return callback(null, contact)
   };
 
+  var getDeviceTypeList = function(callback) {
+    db.devices.getDeviceTypeList(callback);
+  };
+
   module.getDeviceByID = getDeviceByID;
   module.getDeviceByHostname = getDeviceByHostname;
   module.getTicketsbyDeviceID = getTicketsbyDeviceID;
   module.getDevicesbyTypeGroupID = getDevicesbyTypeGroupID;
-  //module.getDeviceTypeList = getDeviceTypeList;
+  module.getDeviceTypeList = getDeviceTypeList;
   module.getDevicesbyClientID = getDevicesbyClientID;
   module.getTicketsbyClientID = getTicketsbyClientID;
   module.getTickets = getTickets;
@@ -106,13 +126,13 @@ module.exports = function(params)
   module.getDeviceHostnames = getDeviceHostnames;
   module.getContactsbyClientID = getContactsbyClientID;
   module.getContactbyContactID = getContactbyContactID;
-  module.getAdmins = getAdmins;
-  module.getAPIMethods = getAPIMethods;
-  module.postItemToUbersmith = postItemToUbersmith;
+  //module.getAdmins = getAdmins;
+  //module.getAPIMethods = getAPIMethods;
+  //module.postItemToUbersmith = postItemToUbersmith;
   module.authenticateUser = authenticateUser;
 
   initialize(function(err, reply) {
-    logger.log('info', 'Ubersmith Module Initialization Complete', {});
+    //logger.log('info', 'Ubersmith Module Initialization Complete', {});
   });
 
   return module;
