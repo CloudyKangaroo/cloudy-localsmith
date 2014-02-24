@@ -33,7 +33,7 @@ module.exports = function(params)
   };
 
   var getDeviceByHostname = function(hostname, callback) {
-    db.devices.findbyHostname(hostname, callback);
+    db.devices.findByHostname(hostname, callback);
   };
 
   var getTicketsbyDeviceID = function(deviceID, callback) {
@@ -130,6 +130,14 @@ module.exports = function(params)
   //module.getAPIMethods = getAPIMethods;
   //module.postItemToUbersmith = postItemToUbersmith;
   module.authenticateUser = authenticateUser;
+
+
+  //deviation from cloudy-ubersmith here:
+  var getSensuEvents = function(count, deviceID, callback) {
+    db.devices.getSensuEvents(count, deviceID, callback);
+  };
+
+  module.getSensuEvents = getSensuEvents;
 
   initialize(function(err, reply) {
     //logger.log('info', 'Ubersmith Module Initialization Complete', {});
