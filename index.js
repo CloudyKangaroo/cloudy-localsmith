@@ -3,7 +3,11 @@ var async = require('async');
 
 var events = require('events');
 var Emitter = new events.EventEmitter;
-var db = require('./lib/db')
+var db = require('./lib/db');
+var mgmtDomain = '';
+
+var cache_manager = require('cache-manager');
+var cache_memory = cache_manager.caching({store: 'memory', max: 1024*64 /*Bytes*/, ttl: 60 /*seconds*/});
 
 module.exports = function(params)
 {
@@ -21,6 +25,14 @@ module.exports = function(params)
     throw Error(message);
   };
 
+  var randomValue = function(myArray) {
+    return myArray[Math.floor(Math.random() * myArray.length)];
+  };
+
+  var getRandomInt = function(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  };
+
   Emitter.on('configure.complete', function(params) {
     if (params.warm_cache === true)
     {
@@ -33,7 +45,9 @@ module.exports = function(params)
   };
 
   var getDeviceByHostname = function(hostname, callback) {
-    db.devices.findByHostname(hostname, callback);
+    db.devices.findByHostname(hostname.replace(mgmtDomain, ''), function(error, deviceList) {
+      callback(error, deviceList[0]);
+    });
   };
 
   var getTicketsbyDeviceID = function(deviceID, callback) {
@@ -53,7 +67,7 @@ module.exports = function(params)
   };
 
   var getTickets = function(callback) {
-    callback(null, db.tickets.tickets);
+    db.tickets.getAll(callback);
   };
 
   var getTicketbyTicketID = function(ticketID, callback) {
@@ -111,6 +125,28 @@ module.exports = function(params)
     db.devices.getDeviceTypeList(callback);
   };
 
+  var addPostToTicket = function(ticketID, subject, body, visible, from, time_spent, callback) {
+    console.log(ticketid + ' ' + subject);
+    callback(null, {status: true, error_code: '', error_message: '', data: ticketID});
+  };
+
+  var createNewTicket = function(body, subject, recipient, user_id, author, cc, to, priority, client_id, contact_id, device_id, callback) {
+    console.log(user_id + ' ' + subject);
+    callback(null, {status: true, error_code: '', error_message: '', data: getRandomInt(900200, 900800)});
+  };
+
+  var getAdminByEmail = function(email, callback) {
+    if (email) {
+      db.admins.findByEmail(email, function (err, admin) {
+        callback(err, admin);
+      });
+    } else {
+     db.admins.getRandomAdmin(function (err, admin) {
+       callback(err, admin);
+     });
+    }
+  };
+
   module.getDeviceByID = getDeviceByID;
   module.getDeviceByHostname = getDeviceByHostname;
   module.getTicketsbyDeviceID = getTicketsbyDeviceID;
@@ -129,17 +165,24 @@ module.exports = function(params)
   //module.getAdmins = getAdmins;
   //module.getAPIMethods = getAPIMethods;
   //module.postItemToUbersmith = postItemToUbersmith;
+  module.addPostToTicket = addPostToTicket;
+  module.createNewTicket = createNewTicket;
+  module.getAdminByEmail = getAdminByEmail;
   module.authenticateUser = authenticateUser;
 
 
   //deviation from cloudy-ubersmith here:
   var getSensuEvents = function(count, deviceID, callback) {
-    db.devices.getSensuEvents(count, deviceID, callback);
+    cache_memory.wrap('getSensuEvents:' + count + '-' + deviceID, function(cacheCallback) {
+      db.devices.getSensuEvents(count, deviceID, cacheCallback);
+    }, callback);
   };
 
   module.getSensuEvents = getSensuEvents;
 
   initialize(function(err, reply) {
+    mgmtDomain = params['mgmtDomain'];
+    db.devices.setMgmtDomain(mgmtDomain);
     //logger.log('info', 'Ubersmith Module Initialization Complete', {});
   });
 
