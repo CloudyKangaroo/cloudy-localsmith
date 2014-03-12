@@ -98,12 +98,22 @@ module.exports = function(params)
   };
 
   var getDeviceHostnames = function(callback) {
-    var devices = db.devices.devices;
-    var deviceList = [];
-    _.each(devices, function(device) {
-     deviceList.push({hostname: device.hostname, deviceID: device.deviceID});
+    db.devices.getAllFull(function (err, devices) {
+      var deviceList = {};
+      _.each(devices, function(device) {
+        deviceList[device.name + mgmtDomain] = {
+          'dev_desc': device.name + mgmtDomain,
+          'dev': device.deviceID,
+          'full_name': '',
+          'email': '',
+          'company': device.company,
+          'clientid': device.clientID,
+          'location': device.location,
+          'runbook': ''
+        };
+      });
+      callback(null, deviceList);
     });
-    callback(null, deviceList);
   };
 
   var getContactsbyClientID = function(clientID, callback) {
@@ -178,8 +188,14 @@ module.exports = function(params)
     }, callback);
   };
 
-  module.getSensuEvents = getSensuEvents;
+  var getSensuDevices = function(callback) {
+    cache_memory.wrap('getSensuDevices', function(cacheCallback) {
+      db.devices.getSensuDevices(cacheCallback);
+    }, callback);
+  };
 
+  module.getSensuDevices = getSensuDevices;
+  module.getSensuEvents = getSensuEvents;
   initialize(function(err, reply) {
     mgmtDomain = params['mgmtDomain'];
     db.devices.setMgmtDomain(mgmtDomain);
